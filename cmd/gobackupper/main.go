@@ -17,6 +17,7 @@ import (
 	"gobackupper/internal/backup"
 	"gobackupper/internal/btrfs"
 	"gobackupper/internal/config"
+	"gobackupper/internal/pathresolve"
 	"gobackupper/internal/process"
 	"gobackupper/internal/rsync"
 	"gobackupper/internal/ui"
@@ -188,16 +189,55 @@ func execute(ctx context.Context, args []string, out, errOut io.Writer, invocati
 	fmt.Fprintf(out, "%s %d snapshot(s).\n", outConsole.Success("Completed:"), len(result.Jobs))
 	return 0
 }
+func lookupInvocationPath(argv0 string) (string, error) {
+	separator := string(filepath.Separator)
+	if strings.Contains(argv0, separator) {
+		return exec.LookPath(argv0)
+	}
+	directories := filepath.SplitList(os.Getenv("PATH"))
+	if len(directories) == 0 {
+		directories = []string{""}
+	}
+	for _, directory := range directories {
+		if directory == "" {
+			directory = "."
+		}
+		path, err := exec.LookPath(directory + separator + argv0)
+		if err == nil || errors.Is(err, exec.ErrDot) {
+			return path, err
+		}
+	}
+	return "", fmt.Errorf("executable %q not found in PATH", argv0)
+}
+
 func invocationDir(argv0 string) (string, error) {
-	path, err := exec.LookPath(argv0)
+	path, err := lookupInvocationPath(argv0)
 	if err != nil && !errors.Is(err, exec.ErrDot) {
 		return "", fmt.Errorf("resolve invocation path %q: %w", argv0, err)
 	}
-	path, err = filepath.Abs(path)
-	if err != nil {
-		return "", fmt.Errorf("make invocation path absolute: %w", err)
+	separator := string(filepath.Separator)
+	parentEnd := strings.LastIndex(path, separator)
+	parent := "."
+	if parentEnd >= 0 {
+		parent = path[:parentEnd]
+		if parent == "" {
+			parent = separator
+		}
 	}
-	return filepath.Dir(path), nil
+	for _, component := range strings.Split(parent, separator) {
+		if component == ".." {
+			dir, err := pathresolve.Real(parent)
+			if err != nil {
+				return "", fmt.Errorf("resolve invocation directory for %q: %w", argv0, err)
+			}
+			return dir, nil
+		}
+	}
+	dir, err := filepath.Abs(parent)
+	if err != nil {
+		return "", fmt.Errorf("make invocation directory absolute: %w", err)
+	}
+	return dir, nil
 }
 
 func realMain() int {

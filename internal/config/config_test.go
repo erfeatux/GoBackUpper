@@ -43,6 +43,44 @@ func TestLoadConfigLayoutAndMerge(t *testing.T) {
 	}
 }
 
+func TestLoadValidatesSourcePathRequiredAndNonEmpty(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, "root")
+	if err := os.Mkdir(root, 0700); err != nil {
+		t.Fatal(err)
+	}
+	writeConfig(t, filepath.Join(dir, "config.ini"), "[target]\npath=target\nsnapshots=target/Snapshots\n[sources]\nroot="+root+"\n")
+
+	tests := []struct {
+		name, fields string
+		wantSource   string
+		wantError    bool
+	}{
+		{name: "missing", wantError: true},
+		{name: "empty", fields: "path=", wantError: true},
+		{name: "interpolated empty", fields: "path=%(blank)s\nblank=", wantError: true},
+		{name: "dot selects source root", fields: "path=.", wantSource: root},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			writeConfig(t, filepath.Join(root, ".backup.ini"), "[targets]\na=A\n[A]\n"+test.fields+"\ntargetpath=data\n")
+			loaded, err := Load(filepath.Join(dir, "config.ini"), dir)
+			if test.wantError {
+				if err == nil || !strings.Contains(err.Error(), "requires a non-empty path") {
+					t.Fatalf("Load() error = %v, want non-empty-path error", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := loaded.Plan.Jobs[0].SourcePath; got != test.wantSource {
+				t.Fatalf("SourcePath = %q, want %q", got, test.wantSource)
+			}
+		})
+	}
+}
+
 func TestLoadMissingOptionalAndBooleanSemantics(t *testing.T) {
 	dir := t.TempDir()
 	changeDirectory(t, dir)

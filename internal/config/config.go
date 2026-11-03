@@ -82,8 +82,8 @@ func Load(filename string, invocationDir string) (Result, error) {
 				return result, fmt.Errorf("config %q: target %q: %w", ini, ref.key, err)
 			}
 			source, ok := section.get("path")
-			if !ok {
-				return result, fmt.Errorf("config %q: [%s] requires path", ini, name)
+			if !ok || source == "" {
+				return result, fmt.Errorf("config %q: [%s] requires a non-empty path", ini, name)
 			}
 			var sourcePath string
 			if filepath.IsAbs(source) {

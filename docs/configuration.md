@@ -2,7 +2,7 @@
 
 ## Two levels
 
-By default, `config.ini` is located next to the path used to launch the executable. When launched through a symlink, the symlink's directory is used, not the target binary's directory. `--config`/`-c` selects a different main file; configured target paths still use the invocation directory as their base.
+By default, `config.ini` is located next to the path used to launch the executable. When launched through a symlink, the symlink's directory is used, not the target binary's directory. For paths containing `..`, symlinks are resolved in filesystem traversal order before following the parent component. `--config`/`-c` selects a different main file; configured target paths still use the invocation directory as their base.
 
 ```ini
 [target]
@@ -59,7 +59,7 @@ The parent of `target.path` is not created automatically: the target itself must
 
 | Field | Requirement and behavior |
 |---|---|
-| `path` | Required; the source directory is checked for the selected job |
+| `path` | Required and non-empty; use `.` to select the `.backup.ini` root. The source directory is checked for the selected job |
 | `targetpath` | Optional; destination is relative to the target root. Empty or unsafe values are rejected by the planner |
 | `delete` | Only `true`, case-insensitively, enables `--delete`; missing/false/yes/on/1 disables it |
 | `exclude` | Optional; split on commas and trim each pattern. Empty elements are passed to rsync as `--exclude=` |

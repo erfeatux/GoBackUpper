@@ -58,7 +58,7 @@ Operations: check filesystem/subvolume metadata, create subvolumes, set compress
 
 ### 3.1. Files and Load Order
 
-`config.ini` is located next to the path used to launch the executable; when launched through a symlink, its directory is used. `.backup.ini` files are loaded from each root listed in `[sources]`. An explicit `--config <path>` selects the primary INI; otherwise the adjacent `config.ini` is used. The invocation directory is also the base for `target.path` and `target.snapshots`.
+`config.ini` is located next to the path used to launch the executable; when launched through a symlink, its directory is used. Symlinks are resolved before later `..` components, matching filesystem traversal. `.backup.ini` files are loaded from each root listed in `[sources]`. An explicit `--config <path>` selects the primary INI; otherwise the adjacent `config.ini` is used. The invocation directory is also the base for `target.path` and `target.snapshots`.
 
 ```ini
 ; config.ini
@@ -97,7 +97,7 @@ The loader retains root and target order. A repeated source name in another root
 |---|---|
 | `target.path`, `target.snapshots` | Required; resolved from `invocationDir + "/" + value`. Even a leading `/` in the value does not cancel the invocation-directory prefix |
 | `[sources].<key>` | Root of `.backup.ini`; relative paths are resolved from the process cwd |
-| `<source>.path` | Required; relative paths are resolved from the source root; absolute paths are used as written |
+| `<source>.path` | Required and non-empty; `.` selects the `.backup.ini` root. Relative paths are resolved from the source root; absolute paths are used as written |
 | `targetpath` | If present, destination = `targetRoot + "/" + targetpath`; otherwise the source basename, with a trailing `/` producing an empty basename |
 | `delete` | Only case-insensitive `true` enables deletion; yes/on/1 remain false |
 | `exclude` | Split on commas and trim each element; empty elements are passed as `--exclude=` |

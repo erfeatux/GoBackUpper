@@ -74,6 +74,67 @@ func TestInvocationDirUsesSymlinkPath(t *testing.T) {
 	}
 }
 
+func TestInvocationDirResolvesSymlinkBeforeParentTraversal(t *testing.T) {
+	root := t.TempDir()
+	realDir := filepath.Join(root, "real")
+	subDir := filepath.Join(realDir, "sub")
+	if err := os.MkdirAll(subDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	launcher := filepath.Join(realDir, "gobackupper")
+	if err := os.WriteFile(launcher, []byte("binary"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	alias := filepath.Join(root, "alias")
+	if err := os.Symlink(subDir, alias); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := invocationDir(alias + "/../gobackupper")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != realDir {
+		t.Fatalf("invocationDir() = %q, want symlink-aware parent %q", got, realDir)
+	}
+	t.Setenv("PATH", alias+"/..")
+	got, err = invocationDir("gobackupper")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != realDir {
+		t.Fatalf("invocationDir() from PATH = %q, want symlink-aware parent %q", got, realDir)
+	}
+}
+
+func TestInvocationDirPreservesSymlinkedLauncherDirectory(t *testing.T) {
+	root := t.TempDir()
+	realDir := filepath.Join(root, "real")
+	if err := os.Mkdir(realDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	launcher := filepath.Join(realDir, "gobackupper")
+	if err := os.WriteFile(launcher, []byte("binary"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	alias := filepath.Join(root, "alias")
+	if err := os.Symlink(realDir, alias); err != nil {
+		t.Fatal(err)
+	}
+	want, err := filepath.Abs(alias)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := invocationDir(filepath.Join(alias, "gobackupper"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatalf("invocationDir() = %q, want launcher directory %q", got, want)
+	}
+}
+
 func TestFlagParseErrorsUseConsoleFormatter(t *testing.T) {
 	var out, errOut bytes.Buffer
 	code := execute(context.Background(), []string{"validate", "--unknown"}, &out, &errOut, t.TempDir())
