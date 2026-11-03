@@ -52,3 +52,7 @@ bin/gobackupper run --config bin/config.ini --job Documents
 - [Recovery and partial failures](docs/recovery.md)
 - [Development and verification](docs/development.md)
 - [Architecture and design decisions](DESIGN.md)
+
+## License
+
+GoBackUpper is distributed under the [GNU General Public License v3.0](LICENSE).
