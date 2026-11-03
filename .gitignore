@@ -1,0 +1,44 @@
+# Local GoBackUpper configuration can contain machine-specific paths.
+config.ini
+.backup.ini
+!docs/examples/config.ini
+!docs/examples/.backup.ini
+
+# Local environment files and secrets.
+.env
+.env.*
+!.env.example
+
+# Go build, test, and coverage outputs.
+/bin/
+/build/
+/dist/
+/backup-target/
+/gobackupper
+*.exe
+*.test
+*.out
+*.prof
+*.coverprofile
+*.cover
+go.work
+go.work.sum
+coverage.html
+
+# Local logs and temporary/editor files.
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.rej
+.gobackupper.lock
+
+# Workstation-specific settings.
+.omp/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
